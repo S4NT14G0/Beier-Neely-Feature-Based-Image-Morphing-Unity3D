@@ -37,7 +37,8 @@ public class MorphTextures : MonoBehaviour {
             Color[] cols = texture.GetPixels(mip);
             for (int i = 0; i < cols.Length; ++i)
             {
-                cols[i] = Color.Lerp(cols[i], colors[mip], 0.33f);
+                if (cols[i].a != 0f)
+                    cols[i] = Color.Lerp(cols[i], colors[mip], 0.5f);
             }
             texture.SetPixels(cols, mip);
 

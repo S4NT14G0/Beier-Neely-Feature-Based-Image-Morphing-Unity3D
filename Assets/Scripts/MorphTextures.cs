@@ -1,9 +1,13 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class MorphTextures : MonoBehaviour {
 
     public GameObject src2DGameObject, dest2DGameObject;
+
+    [SerializeField]
+    List<Line> srcLines, destLines;
 
     private SpriteRenderer srcSpriteRenderer, destSpriteRenderer;
 
@@ -20,6 +24,27 @@ public class MorphTextures : MonoBehaviour {
 
     // Update is called once per frame
     void Update () {
+    }
+
+    Texture2D SingleLineTransformation()
+    {
+        Texture2D warpedTexture = new Texture2D(textureFromSprite(srcSpriteRenderer.sprite).width, textureFromSprite(srcSpriteRenderer.sprite).height);
+        Line destLine = destLines[0];
+        Line srcLine = srcLines[0];
+
+        for (int x = 0; x < warpedTexture.width; x++)
+        {
+            for (int y = 0; y < warpedTexture.height; y++)
+            {
+                // Find UV relative to line source line
+                Vector2 X = new Vector2(x, y);
+                float u = Vector2.Dot((X - destLine.P()), (destLine.Q() - destLine.P())) / Vector2.SqrMagnitude(destLine.Q() - destLine.P());
+                float v = Vector2.Dot((X - destLine.P()), (destLine.Q() - destLine.P()).Perpendicular()) / (destLine.Q() - destLine.P()).magnitude;
+                //Vector2 xPrime = 
+            }
+        }
+
+        return warpedTexture;
     }
 
     Texture2D modifyTextures(Texture2D texture)
@@ -74,5 +99,28 @@ public class MorphTextures : MonoBehaviour {
         else
             return sprite.texture;
     }
+}
 
+[System.Serializable]
+public class Line {
+    [SerializeField, Header("Start Vector")]
+    private Vector2 p;
+    [SerializeField, Header("End Vector")]
+    private Vector2 q;
+
+    public Line(Vector2 _p, Vector2 _q)
+    {
+        this.p = _p;
+        this.q = _q;
+    }
+
+    public Vector2 P()
+    {
+        return this.p;
+    }
+
+    public Vector2 Q()
+    {
+        return this.q;
+    }
 }

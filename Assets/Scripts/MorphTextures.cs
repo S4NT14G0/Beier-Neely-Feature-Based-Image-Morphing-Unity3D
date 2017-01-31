@@ -16,14 +16,13 @@ public class MorphTextures : MonoBehaviour {
         srcSpriteRenderer = src2DGameObject.GetComponent<SpriteRenderer>();
         destSpriteRenderer = dest2DGameObject.GetComponent<SpriteRenderer>();
 
-        Texture2D texToModify = textureFromSprite(srcSpriteRenderer.sprite);
+        //Texture2D texToModify = textureFromSprite(srcSpriteRenderer.sprite);
 
-        srcSpriteRenderer.sprite = spriteFromTexture(modifyTextures(texToModify));
-
-    }
-
-    // Update is called once per frame
-    void Update () {
+        //srcSpriteRenderer.sprite = spriteFromTexture(modifyTextures(texToModify));
+        GameObject newSprite = new GameObject("singleLineTransform");
+        newSprite.AddComponent<SpriteRenderer>().sprite = spriteFromTexture(SingleLineTransformation());
+        newSprite.transform.position = new Vector3(5f, 0f);
+        newSprite.transform.localScale = new Vector3(5, 5, 5);
     }
 
     Texture2D SingleLineTransformation()
@@ -37,12 +36,14 @@ public class MorphTextures : MonoBehaviour {
             for (int y = 0; y < warpedTexture.height; y++)
             {
                 // Find UV relative to line source line
-                Vector2 X = new Vector2(x, y);
+                Vector2  X = new Vector2(x, y);
                 float u = Vector2.Dot((X - destLine.P()), (destLine.Q() - destLine.P())) / Vector2.SqrMagnitude(destLine.Q() - destLine.P());
                 float v = Vector2.Dot((X - destLine.P()), (destLine.Q() - destLine.P()).Perpendicular()) / (destLine.Q() - destLine.P()).magnitude;
-                //Vector2 xPrime = 
+                Vector2 xPrime = srcLine.P() + u * (srcLine.Q() - srcLine.P()) + (v * (srcLine.Q() - srcLine.P()).Perpendicular() / (srcLine.Q() - srcLine.P()).magnitude);
+                warpedTexture.SetPixel(x, y, srcSpriteRenderer.sprite.texture.GetPixel((int)xPrime.x,(int) xPrime.y));
             }
         }
+        warpedTexture.Apply();
 
         return warpedTexture;
     }

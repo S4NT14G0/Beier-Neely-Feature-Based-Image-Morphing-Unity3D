@@ -17,6 +17,9 @@ public class MorphTextures : MonoBehaviour {
     [SerializeField, Range(0, 1)]
     float b = 0.5f;
 
+    [SerializeField, Range(0, 1)]
+    float alpha = 0.5f;
+
 
 	// Use this for initialization
 	void Start () {
@@ -35,10 +38,22 @@ public class MorphTextures : MonoBehaviour {
         else
         {
             // User Multiple line algorithm to modify a texture with two different lines
-            GameObject newSprite = new GameObject("Multiple Line Transformed Texture");
-            newSprite.AddComponent<SpriteRenderer>().sprite = TextureToSprite(MultipleLineTransformation(srcSprite, destSprite));
-            newSprite.transform.position = new Vector3(5f, 0f);
+            GameObject sourceSprite = new GameObject("Source");
+            sourceSprite.AddComponent<SpriteRenderer>().sprite = TextureToSprite(MultiLineWarp(srcSprite, destSprite, srcLines, destLines));
+            sourceSprite.transform.position = new Vector3(5f, 0f);
+            sourceSprite.transform.localScale = new Vector3(5, 5, 5);
+
+            // User Multiple line algorithm to modify a texture with two different lines
+            GameObject newSprite = new GameObject("Destination");
+            newSprite.AddComponent<SpriteRenderer>().sprite = TextureToSprite(MultiLineWarp(destSprite, srcSprite, destLines, srcLines));
+            newSprite.transform.position = new Vector3(5f, 5f);
             newSprite.transform.localScale = new Vector3(5, 5, 5);
+
+            GameObject result = new GameObject("Final");
+            result.AddComponent<SpriteRenderer>().sprite = TextureToSprite( BlendWarpedImages(sourceSprite.GetComponent<SpriteRenderer>().sprite.texture, newSprite.GetComponent<SpriteRenderer>().sprite.texture, alpha));
+            result.transform.position = new Vector3(10f, 2.5f);
+            result.transform.localScale = new Vector3(5, 5, 5);
+            
         }
     }
 
@@ -78,7 +93,30 @@ public class MorphTextures : MonoBehaviour {
         return srcLine.P() + uv.u * (srcLine.Q() - srcLine.P()) + (uv.v * (srcLine.Q() - srcLine.P()).Perpendicular() / (srcLine.Q() - srcLine.P()).magnitude);
     }
 
-    Texture2D MultipleLineTransformation (Sprite srcSprite, Sprite destSprite)
+    Texture2D BlendWarpedImages(Texture2D warpedSrcImage, Texture2D warpedDestImage, float alphaVal)
+    {
+        Texture2D resultImage = new Texture2D(Mathf.Max(warpedSrcImage.width, warpedDestImage.width), Mathf.Max(warpedSrcImage.height, warpedDestImage.height));
+
+        for (int x = 0; x < resultImage.width; x++)
+        {
+            for (int y = 0; y < resultImage.height; y++)
+            {
+                Color tempCol = new Color();
+
+                tempCol.r = warpedSrcImage.GetPixel(x, y).r + alphaVal * (warpedDestImage.GetPixel(x, y).r - warpedSrcImage.GetPixel(x, y).r);
+                tempCol.g = warpedSrcImage.GetPixel(x, y).g + alphaVal * (warpedDestImage.GetPixel(x, y).g - warpedSrcImage.GetPixel(x, y).g);
+                tempCol.b = warpedSrcImage.GetPixel(x, y).b + alphaVal * (warpedDestImage.GetPixel(x, y).b - warpedSrcImage.GetPixel(x, y).b);
+                tempCol.a = warpedSrcImage.GetPixel(x, y).a + alphaVal * (warpedDestImage.GetPixel(x, y).a - warpedSrcImage.GetPixel(x, y).a);
+                resultImage.SetPixel(x, y, tempCol);
+            }
+
+        }
+
+        resultImage.Apply();
+        return resultImage;
+    }
+
+    Texture2D MultiLineWarp (Sprite srcSprite, Sprite destSprite, List<Line> sourceLines, List<Line> destinationLines)
     {
         Texture2D destinationTexture = new Texture2D(SpriteToTexture(destSprite).width, SpriteToTexture(destSprite).height);
 
@@ -89,7 +127,7 @@ public class MorphTextures : MonoBehaviour {
             for (int y = 0; y < destinationTexture.height; y++)
             {
                 Vector2 xPixel = new Vector2(x, y);
-                Vector2 xPrimePixel = new Vector2(x, y);
+                Vector2 xPrimePixel = new Vector2();
 
                 // DSUM = (0,0)
                 // weightsum = 0
@@ -99,11 +137,11 @@ public class MorphTextures : MonoBehaviour {
                 int lineIndex = 0;
 
                 // Foreach Line in Pi Qi
-                foreach (Line destLine in destLines) {
+                foreach (Line destLine in destinationLines) {
                     // Calculate u,v based on Pi Qi
                     UV uv = CalculateUV(destLine, xPixel);
                     // Calculate Xi' based on u,v and Pi' Qi'
-                    xPrimePixel = CalculateXPrime(uv, srcLines[lineIndex]);
+                    xPrimePixel = CalculateXPrime(uv, sourceLines[lineIndex]);
                     // Calculate displacement Di = Xi' - Xi for this line
                     Vector2 Di = xPrimePixel - xPixel;
                     // dist = shortest distance from X to PiQi
@@ -141,7 +179,7 @@ public class MorphTextures : MonoBehaviour {
 
             }
         }
-
+        destinationTexture.Apply();
         return destinationTexture;
     }
 
@@ -173,16 +211,16 @@ public class MorphTextures : MonoBehaviour {
 }
 
 struct UV {
+    public float u;
+    public float v;
+
     public UV(float _u, float _v)
     {
-        u = _u;
-        v = _v;
+        this.u = _u;
+        this.v = _v;
     }
 
-    public float u { get; set; }
-    public float v { get; set; }
 }
-
 
 [System.Serializable]
 public class Line {

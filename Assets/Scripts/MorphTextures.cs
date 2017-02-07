@@ -53,7 +53,12 @@ public class MorphTextures : MonoBehaviour {
             result.AddComponent<SpriteRenderer>().sprite = TextureToSprite( BlendWarpedImages(sourceSprite.GetComponent<SpriteRenderer>().sprite.texture, newSprite.GetComponent<SpriteRenderer>().sprite.texture, alpha));
             result.transform.position = new Vector3(10f, 2.5f);
             result.transform.localScale = new Vector3(5, 5, 5);
-            
+
+            GameObject blend = new GameObject("Blend");
+            blend.AddComponent<SpriteRenderer>().sprite = TextureToSprite(BlendWarpedImages(srcSprite.texture, destSprite.texture, alpha));
+            blend.transform.position = new Vector3(15f, 2.5f);
+            blend.transform.localScale = new Vector3(5, 5, 5);
+
         }
     }
 
@@ -247,6 +252,6 @@ public class Line {
 
     public float Length()
     {
-        return Vector2.Distance(this.p, this.q);
+        return Mathf.Abs(Vector2.Distance(this.p, this.q));
     }
 }

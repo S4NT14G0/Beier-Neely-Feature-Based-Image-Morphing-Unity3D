@@ -5,16 +5,16 @@ using System.Collections.Generic;
 public class MorphTextures : MonoBehaviour {
 
     [SerializeField]
-    GameObject src2DGameObject, dest2DGameObject;
+    GameObject gameObjectA, gameObjectB;
 
     [SerializeField]
-    List<Line> srcLines, destLines;
+    List<Line> aLines, bLines;
 
     [SerializeField, Range(0, 1)]
     float a = 0.001f;
-    [SerializeField, Range(0.5f, 2f)]
+    [SerializeField, Range(0.0f, 2f)]
     float p = 1.4f;
-    [SerializeField, Range(0, 1)]
+    [SerializeField, Range(0, 2)]
     float b = 0.5f;
 
     [SerializeField, Range(0, 1)]
@@ -24,40 +24,40 @@ public class MorphTextures : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
         // Get access to the tect
-        Sprite srcSprite = src2DGameObject.GetComponent<SpriteRenderer>().sprite;
-        Sprite destSprite = dest2DGameObject.GetComponent<SpriteRenderer>().sprite;
+        Sprite spriteA = gameObjectA.GetComponent<SpriteRenderer>().sprite;
+        Sprite spriteB = gameObjectB.GetComponent<SpriteRenderer>().sprite;
 
-        if (srcLines.Count == 1)
+        if (aLines.Count == 1)
         {
             // Use single line algorithm to warp a texture with one line
             GameObject newSprite = new GameObject("Single Line Transformed Texture");
-            newSprite.AddComponent<SpriteRenderer>().sprite = TextureToSprite(SingleLineTransformation(srcSprite));
+            newSprite.AddComponent<SpriteRenderer>().sprite = TextureToSprite(SingleLineTransformation(spriteA));
             newSprite.transform.position = new Vector3(5f, 0f);
             newSprite.transform.localScale = new Vector3(5, 5, 5);
         }
         else
         {
             // User Multiple line algorithm to modify a texture with two different lines
-            GameObject sourceSprite = new GameObject("Source");
-            sourceSprite.AddComponent<SpriteRenderer>().sprite = TextureToSprite(MultiLineWarp(srcSprite, destSprite, srcLines, destLines));
-            sourceSprite.transform.position = new Vector3(5f, 0f);
-            sourceSprite.transform.localScale = new Vector3(5, 5, 5);
+            GameObject warpA = new GameObject("warpA");
+            warpA.AddComponent<SpriteRenderer>().sprite = TextureToSprite(MultiLineWarp(spriteA, spriteB, aLines, bLines, spriteA.texture.width, spriteA.texture.height));
+            warpA.transform.position = new Vector3(15f, 0f);
+            warpA.transform.localScale = new Vector3(5, 5, 5);
 
             // User Multiple line algorithm to modify a texture with two different lines
-            GameObject newSprite = new GameObject("Destination");
-            newSprite.AddComponent<SpriteRenderer>().sprite = TextureToSprite(MultiLineWarp(destSprite, srcSprite, destLines, srcLines));
-            newSprite.transform.position = new Vector3(5f, 5f);
-            newSprite.transform.localScale = new Vector3(5, 5, 5);
+            GameObject warpB = new GameObject("warpB");
+            warpB.AddComponent<SpriteRenderer>().sprite = TextureToSprite(MultiLineWarp(spriteB, spriteA, bLines, aLines, spriteB.texture.width, spriteB.texture.height));
+            warpB.transform.position = new Vector3(15f, 15f);
+            warpB.transform.localScale = new Vector3(5, 5, 5);
 
             GameObject result = new GameObject("Final");
-            result.AddComponent<SpriteRenderer>().sprite = TextureToSprite( BlendWarpedImages(sourceSprite.GetComponent<SpriteRenderer>().sprite.texture, newSprite.GetComponent<SpriteRenderer>().sprite.texture, alpha));
-            result.transform.position = new Vector3(10f, 2.5f);
+            result.AddComponent<SpriteRenderer>().sprite = TextureToSprite(BlendWarpedImages(warpA.GetComponent<SpriteRenderer>().sprite.texture, warpB.GetComponent<SpriteRenderer>().sprite.texture, alpha));
+            result.transform.position = new Vector3(30f, 7.5f);
             result.transform.localScale = new Vector3(5, 5, 5);
 
-            GameObject blend = new GameObject("Blend");
-            blend.AddComponent<SpriteRenderer>().sprite = TextureToSprite(BlendWarpedImages(srcSprite.texture, destSprite.texture, alpha));
-            blend.transform.position = new Vector3(15f, 2.5f);
-            blend.transform.localScale = new Vector3(5, 5, 5);
+            //GameObject blend = new GameObject("Blend");
+            //blend.AddComponent<SpriteRenderer>().sprite = TextureToSprite(BlendWarpedImages(srcSprite.texture, destSprite.texture, alpha));
+            //blend.transform.position = new Vector3(15f, 2.5f);
+            //blend.transform.localScale = new Vector3(5, 5, 5);
 
         }
     }
@@ -65,8 +65,8 @@ public class MorphTextures : MonoBehaviour {
     Texture2D SingleLineTransformation(Sprite srcSprite)
     {
         Texture2D warpedTexture = new Texture2D(SpriteToTexture(srcSprite).width, SpriteToTexture(srcSprite).height);
-        Line destLine = destLines[0];
-        Line srcLine = srcLines[0];
+        Line destLine = bLines[0];
+        Line srcLine = aLines[0];
 
         for (int x = 0; x < warpedTexture.width; x++)
         {
@@ -121,12 +121,11 @@ public class MorphTextures : MonoBehaviour {
         return resultImage;
     }
 
-    Texture2D MultiLineWarp (Sprite srcSprite, Sprite destSprite, List<Line> sourceLines, List<Line> destinationLines)
+    Texture2D MultiLineWarp (Sprite srcSprite, Sprite destSprite, List<Line> sourceLines, List<Line> destinationLines, int width, int height)
     {
-        Texture2D destinationTexture = new Texture2D(SpriteToTexture(destSprite).width, SpriteToTexture(destSprite).height);
+        Texture2D destinationTexture = new Texture2D(width, height);
 
         // Foreach pixel X in the destination
-
         for (int x = 0; x < destinationTexture.width; x++)
         {
             for (int y = 0; y < destinationTexture.height; y++)
@@ -166,9 +165,9 @@ public class MorphTextures : MonoBehaviour {
                     }
 
                     // weight = (length^p / (a + dist)))^b
-                    float weight = Mathf.Pow(Mathf.Pow(destLine.Length(), p) / (a + dist), b);
+                    float weight = Mathf.Pow((Mathf.Pow(destLine.Length(), p) / (a + dist)), b);
                     // DSUM += Di * weight
-                    DSUM += Di * weight;
+                    DSUM += (Di * weight);
                     // weightSum += weight;
                     weightSum += weight;
 
@@ -180,8 +179,8 @@ public class MorphTextures : MonoBehaviour {
                 xPrimePixel = xPixel + DSUM / weightSum;
 
                 // destinationImage (X) = sourceImage (X')
-                destinationTexture.SetPixel(x, y, srcSprite.texture.GetPixel((int)xPrimePixel.x, (int)xPrimePixel.y));
-
+                destinationTexture.SetPixel(x, y, srcSprite.texture.GetPixel((int) xPrimePixel.x, (int) xPrimePixel.y));
+                
             }
         }
         destinationTexture.Apply();
@@ -210,7 +209,7 @@ public class MorphTextures : MonoBehaviour {
             newText.Apply();
             return newText;
         }
-        else
+        else 
             return sprite.texture;
     }
 }
@@ -252,6 +251,7 @@ public class Line {
 
     public float Length()
     {
-        return Mathf.Abs(Vector2.Distance(this.p, this.q));
+        //float length = Mathf.Sqrt(Mathf.Pow(q.x - p.x, 2) + Mathf.Pow(q.y - p.y, 2));
+        return Vector2.Distance(this.q, this.p);
     }
 }

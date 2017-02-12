@@ -10,7 +10,7 @@ public class MorphTextures : MonoBehaviour {
     [SerializeField]
     List<Line> aLines, bLines;
 
-    [SerializeField, Range(0, 1)]
+    [SerializeField]
     float a = 0.001f;
     [SerializeField, Range(0.0f, 2f)]
     float p = 1.4f;
@@ -141,9 +141,10 @@ public class MorphTextures : MonoBehaviour {
                 int lineIndex = 0;
 
                 // Foreach Line in Pi Qi
-                foreach (Line destLine in destinationLines) {
+                for (int i = 0; i < destinationLines.Count; i++)
+                {
                     // Calculate u,v based on Pi Qi
-                    UV uv = CalculateUV(destLine, xPixel);
+                    UV uv = CalculateUV(destinationLines[i], xPixel);
                     // Calculate Xi' based on u,v and Pi' Qi'
                     xPrimePixel = CalculateXPrime(uv, sourceLines[lineIndex]);
                     // Calculate displacement Di = Xi' - Xi for this line
@@ -157,15 +158,15 @@ public class MorphTextures : MonoBehaviour {
                     }
                     else if (uv.u < 0)
                     {
-                        dist = Vector2.Distance(xPixel, destLine.P());
+                        dist = Vector2.Distance(xPixel, destinationLines[i].P());
                     }
                     else if (uv.u > 1)
                     {
-                        dist = Vector2.Distance(xPixel, destLine.Q());
+                        dist = Vector2.Distance(xPixel, destinationLines[i].Q());
                     }
 
                     // weight = (length^p / (a + dist)))^b
-                    float weight = Mathf.Pow((Mathf.Pow(destLine.Length(), p) / (a + dist)), b);
+                    float weight = Mathf.Pow((Mathf.Pow(destinationLines[i].Length(), p) / (a + dist)), b);
                     // DSUM += Di * weight
                     DSUM += (Di * weight);
                     // weightSum += weight;
@@ -178,8 +179,11 @@ public class MorphTextures : MonoBehaviour {
                 // X' = X + DSUM / weightsum
                 xPrimePixel = xPixel + DSUM / weightSum;
 
-                // destinationImage (X) = sourceImage (X')
-                destinationTexture.SetPixel(x, y, srcSprite.texture.GetPixel((int) xPrimePixel.x, (int) xPrimePixel.y));
+                if (xPrimePixel.x >= 0 && xPrimePixel.x < destinationTexture.width && xPrimePixel.y >= 0 && xPrimePixel.y < destinationTexture.height)
+                {
+                    // destinationImage (X) = sourceImage (X')
+                    destinationTexture.SetPixel(x, y, srcSprite.texture.GetPixel((int)xPrimePixel.x, (int)xPrimePixel.y));
+                }
                 
             }
         }

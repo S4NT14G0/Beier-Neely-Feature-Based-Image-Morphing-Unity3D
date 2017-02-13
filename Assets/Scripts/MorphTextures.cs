@@ -31,7 +31,7 @@ public class MorphTextures : MonoBehaviour {
         Texture2D texB;
         Texture2D blend;
 
-        for (int i = 1; i <= 10; i++)
+        for (int i = 1; i <= 2; i++)
         {
             List<Line> frameLinesA = new List<Line>();
             List<Line> frameLinesB = new List<Line>();
@@ -255,7 +255,7 @@ public class MorphTextures : MonoBehaviour {
     {
         Rect rec = new Rect(0, 0, tex.width, tex.height);
 
-        Sprite spriteFromTex = Sprite.Create(tex, rec, new Vector2(0.5f, 0.5f), 100);
+        Sprite spriteFromTex = Sprite.Create(tex, rec, new Vector2(0, 0), 100);
 
         return spriteFromTex;
     }

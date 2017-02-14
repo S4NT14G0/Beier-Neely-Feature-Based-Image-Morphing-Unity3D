@@ -23,16 +23,41 @@ public class MorphTextures : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-        // Get access to the tect
+        // Get access to the sprite
         Sprite spriteA = gameObjectA.GetComponent<SpriteRenderer>().sprite;
         Sprite spriteB = gameObjectB.GetComponent<SpriteRenderer>().sprite;
-
-        CreateTargetImage("A Lines", DebugLines(aLines, spriteA.texture), new Vector3(-15f, 0), new Vector3(5, 5, 5));
-        CreateTargetImage("B Lines", DebugLines(bLines, spriteA.texture), new Vector3(-15f, -15f), new Vector3(5, 5, 5));
-
+        
+        // Create our textures we are going to warp and blend
         Texture2D texA;
         Texture2D texB;
         Texture2D blend;
+
+        // Create an array to store flipped lines
+        List<Line> flippedA = new List<Line>(), flippedB = new List<Line>();
+
+        // Flipping lines GIMP starts 0,0 at top left while Unity starts 0,0 from bottom left
+        for (int i = 0; i < aLines.Count; i++)
+        {
+            Line lineA = new Line(aLines[i].P().ToUnityCoordSys(spriteA.texture.height), aLines[i].Q().ToUnityCoordSys(spriteA.texture.height));
+            Line lineB = new Line(bLines[i].P().ToUnityCoordSys(spriteA.texture.height), bLines[i].Q().ToUnityCoordSys(spriteA.texture.height));
+
+            flippedA.Add(lineA);
+            flippedB.Add(lineB);
+        }
+        
+        // Warp between the images
+        texA = MultiLineWarp(spriteA, spriteB, flippedA, flippedB, spriteA.texture.width, spriteA.texture.height);
+        texB = MultiLineWarp(spriteB, spriteA, flippedB, flippedA, spriteA.texture.width, spriteA.texture.height);
+        // Blend the images together
+        blend = BlendWarpedImages(texA, texB, alpha);
+
+        // Create 2D gameobjects to display the images and set their scale/location
+        CreateTargetImage("Warp A", texA, new Vector3(15f, -7, 0), new Vector3(5, 5, 5));
+        CreateTargetImage("Warp B", texB, new Vector3(15f, 8f, 0), new Vector3(5, 5, 5));
+        CreateTargetImage("Blend", blend, new Vector3(30f, 3f, 0), new Vector3(5, 5, 5));
+
+        //CreateTargetImage("A Lines", DebugLines(aLines, spriteA.texture), new Vector3(-15f, 0), new Vector3(5, 5, 5));
+        //CreateTargetImage("B Lines", DebugLines(bLines, spriteA.texture), new Vector3(-15f, -15f), new Vector3(5, 5, 5));
 
         //for (int i = 1; i <= 1; i++)
         //{
@@ -73,22 +98,6 @@ public class MorphTextures : MonoBehaviour {
         //    CreateTargetImage("Warp B " + i, texB, new Vector3(i * 15f, 15f, 0), new Vector3(5, 5, 5));
         //    CreateTargetImage("Blend " + i, blend, new Vector3(i * 15f, 30f, 0), new Vector3(5, 5, 5));
         //}
-
-        List<Line> flippedA = new List<Line>(), flippedB = new List<Line>();
-        for(int i = 0; i < aLines.Count; i++)
-        {
-            Line lineA = new Line(aLines[i].P().ToUnityCoordSys(spriteA.texture.height), aLines[i].Q().ToUnityCoordSys(spriteA.texture.height));
-            Line lineB = new Line(bLines[i].P().ToUnityCoordSys(spriteA.texture.height), bLines[i].Q().ToUnityCoordSys(spriteA.texture.height));
-
-            flippedA.Add(lineA);
-            flippedB.Add(lineB);
-        }
-        texA = MultiLineWarp(spriteA, spriteB, flippedA, flippedB, spriteA.texture.width, spriteA.texture.height);
-        texB = MultiLineWarp(spriteB, spriteA, flippedB, flippedA, spriteA.texture.width, spriteA.texture.height);
-        blend = BlendWarpedImages(texA, texB, alpha);
-        CreateTargetImage("Warp A", texA, new Vector3(15f, 0, 0), new Vector3(5, 5, 5));
-        CreateTargetImage("Warp B", texB, new Vector3(15f, 15f, 0), new Vector3(5, 5, 5));
-        CreateTargetImage("Blend", blend, new Vector3(15f, 30f, 0), new Vector3(5, 5, 5));
     }
 
     Texture2D DebugLines (List<Line> lines, Texture2D tex)
@@ -234,16 +243,8 @@ public class MorphTextures : MonoBehaviour {
                 // X' = X + DSUM / weightsum
                 xPrimePixel = xPixel + DSUM / weightSum;
 
-                if (xPrimePixel.x >= 0 && xPrimePixel.x < destinationTexture.width && xPrimePixel.y >= 0 && xPrimePixel.y < destinationTexture.height)
-                {
-                    // destinationImage (X) = sourceImage (X')
-                    destinationTexture.SetPixel(x, y, srcSprite.texture.GetPixel((int)xPrimePixel.x, (int)xPrimePixel.y));
-                }
-
-                if (xPrimePixel.x > destinationTexture.width || xPrimePixel.y > destinationTexture.height)
-                {
-
-                }
+                // Lerp from the old source pixel to the destination
+                destinationTexture.SetPixel(x, y, srcSprite.texture.GetPixel((int)Vector2.Lerp(xPixel, xPrimePixel, 0.5f).x, (int)Vector2.Lerp(xPixel, xPrimePixel, 0.5f).y));
             }
         }
         destinationTexture.Apply();
@@ -297,7 +298,6 @@ public class Line {
 
     public float Length()
     {
-        //float length = Mathf.Sqrt(Mathf.Pow(q.x - p.x, 2) + Mathf.Pow(q.y - p.y, 2));
         return Vector2.Distance(this.q, this.p);
     }
 }

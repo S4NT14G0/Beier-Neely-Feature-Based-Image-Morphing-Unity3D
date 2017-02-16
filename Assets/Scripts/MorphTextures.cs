@@ -52,10 +52,18 @@ public class MorphTextures : MonoBehaviour {
         blend = BlendWarpedImages(texA, texB, alpha);
 
         // Create 2D gameobjects to display the images and set their scale/location
-        CreateTargetImage("Warp A", texA, new Vector3(15f, -7, 0), new Vector3(5, 5, 5));
-        CreateTargetImage("Warp B", texB, new Vector3(15f, 8f, 0), new Vector3(5, 5, 5));
+        CreateTargetImage("Warp A", texA, new Vector3(15f, 8, 0), new Vector3(5, 5, 5));
+        CreateTargetImage("Warp B", texB, new Vector3(15f, -7f, 0), new Vector3(5, 5, 5));
         CreateTargetImage("Blend", blend, new Vector3(30f, 3f, 0), new Vector3(5, 5, 5));
 
+
+    }
+
+    /// <summary>
+    /// TODO: Implement this method to animate the morph process
+    /// </summary>
+    void CreateMorphAnimation ()
+    {
         //CreateTargetImage("A Lines", DebugLines(aLines, spriteA.texture), new Vector3(-15f, 0), new Vector3(5, 5, 5));
         //CreateTargetImage("B Lines", DebugLines(bLines, spriteA.texture), new Vector3(-15f, -15f), new Vector3(5, 5, 5));
 
@@ -100,23 +108,47 @@ public class MorphTextures : MonoBehaviour {
         //}
     }
 
+    /// <summary>
+    /// Draw a 2D image on screen that shows the line representation
+    /// </summary>
+    /// <param name="lines"></param>
+    /// <param name="tex"></param>
+    /// <returns></returns>
     Texture2D DebugLines (List<Line> lines, Texture2D tex)
     {
+        // Create a new texture for displaying lines
         Texture2D debug = new Texture2D(tex.width, tex.height);
+
         Color[] colors = new Color[tex.width * tex.height];
+        // Set intiial color array to transparent
         for (int i = 0; i < colors.Length; i++)
             colors[i] = Color.clear;
+
+        // Set the color array to the texture
         debug.SetPixels(colors);
+
+        // Flip the lines to match Unity coord system and set the pixel
         foreach (Line line in lines)
         {
             Line flippedLine = new Line(line.P().ToUnityCoordSys(tex.height), line.Q().ToUnityCoordSys(tex.height));
             debug.SetPixel((int)flippedLine.P().x, (int)flippedLine.P().y, Color.red);
             debug.SetPixel((int)flippedLine.Q().x, (int)flippedLine.Q().y, Color.red);
         }
+
+        // Apply changes to texture
         debug.Apply();
+
+        // Return debugged new texture
         return debug;
     }
 
+    /// <summary>
+    /// Create a new 2D gameobject
+    /// </summary>
+    /// <param name="name">Name of gameobject</param>
+    /// <param name="tex">Texture to be applied to gameobject</param>
+    /// <param name="position">Initial position</param>
+    /// <param name="scale">Initial scale</param>
     void CreateTargetImage (string name, Texture2D tex, Vector3 position, Vector3 scale)
     {
         GameObject go = new GameObject(name);
@@ -126,6 +158,11 @@ public class MorphTextures : MonoBehaviour {
 
     }
 
+    /// <summary>
+    /// Test function to morph an image based on a single feature line
+    /// </summary>
+    /// <param name="srcSprite"></param>
+    /// <returns></returns>
     Texture2D SingleLineTransformation(Sprite srcSprite)
     {
         Texture2D warpedTexture = new Texture2D(srcSprite.texture.width,srcSprite.texture.height);
@@ -138,6 +175,7 @@ public class MorphTextures : MonoBehaviour {
             {
                 // Find UV relative to line source line
                 Vector2  X = new Vector2(x, y);
+                // Calculate UV coordinates of the destination sprite relative to the destination lines
                 float u = Vector2.Dot((X - destLine.P()), (destLine.Q() - destLine.P())) / Vector2.SqrMagnitude(destLine.Q() - destLine.P());
                 float v = Vector2.Dot((X - destLine.P()), (destLine.Q() - destLine.P()).Perpendicular()) / (destLine.Q() - destLine.P()).magnitude;
                 Vector2 xPrime = srcLine.P() + u * (srcLine.Q() - srcLine.P()) + (v * (srcLine.Q() - srcLine.P()).Perpendicular() / (srcLine.Q() - srcLine.P()).magnitude);
@@ -149,6 +187,12 @@ public class MorphTextures : MonoBehaviour {
         return warpedTexture;
     }
     
+    /// <summary>
+    /// Calculate UV value for a pixel based on a feature line
+    /// </summary>
+    /// <param name="destLine"></param>
+    /// <param name="X"></param>
+    /// <returns></returns>
     UV CalculateUV (Line destLine, Vector2 X)
     {
         float u = Vector2.Dot((X - destLine.P()), (destLine.Q() - destLine.P())) / (destLine.Q() - destLine.P()).sqrMagnitude;
@@ -157,15 +201,29 @@ public class MorphTextures : MonoBehaviour {
         return new UV(u, v);
     }
 
+    /// <summary>
+    /// Calculate X prime pixel based on feature line
+    /// </summary>
+    /// <param name="uv"></param>
+    /// <param name="srcLine"></param>
+    /// <returns></returns>
     Vector2 CalculateXPrime (UV uv, Line srcLine)
     {
         return srcLine.P() + uv.u * (srcLine.Q() - srcLine.P()) + (uv.v * (srcLine.Q() - srcLine.P()).Perpendicular() / (srcLine.Q() - srcLine.P()).magnitude);
     }
 
+    /// <summary>
+    /// Blend two images together
+    /// </summary>
+    /// <param name="warpedSrcImage"></param>
+    /// <param name="warpedDestImage"></param>
+    /// <param name="alphaVal"></param>
+    /// <returns></returns>
     Texture2D BlendWarpedImages(Texture2D warpedSrcImage, Texture2D warpedDestImage, float alphaVal)
     {
         Texture2D resultImage = new Texture2D(Mathf.Max(warpedSrcImage.width, warpedDestImage.width), Mathf.Max(warpedSrcImage.height, warpedDestImage.height));
 
+        // Blend each images' color based on alpha value
         for (int x = 0; x < resultImage.width; x++)
         {
             for (int y = 0; y < resultImage.height; y++)
@@ -185,6 +243,16 @@ public class MorphTextures : MonoBehaviour {
         return resultImage;
     }
 
+    /// <summary>
+    /// Warm a source image to match the destination image shape based on feature lines
+    /// </summary>
+    /// <param name="srcSprite"></param>
+    /// <param name="destSprite"></param>
+    /// <param name="sourceLines"></param>
+    /// <param name="destinationLines"></param>
+    /// <param name="width"></param>
+    /// <param name="height"></param>
+    /// <returns></returns>
     Texture2D MultiLineWarp (Sprite srcSprite, Sprite destSprite, List<Line> sourceLines, List<Line> destinationLines, int width, int height)
     {
         Texture2D destinationTexture = new Texture2D(width, height);
@@ -251,6 +319,11 @@ public class MorphTextures : MonoBehaviour {
         return destinationTexture;
     }
 
+    /// <summary>
+    /// Helper function to convert a Texture2D to a Sprite
+    /// </summary>
+    /// <param name="tex"></param>
+    /// <returns></returns>
     Sprite TextureToSprite(Texture2D tex)
     {
         Rect rec = new Rect(0, 0, tex.width, tex.height);
@@ -261,6 +334,9 @@ public class MorphTextures : MonoBehaviour {
     }
 }
 
+/// <summary>
+/// Helper struct to store UV coordinates of pixel
+/// </summary>
 struct UV {
     public float u;
     public float v;
@@ -273,6 +349,9 @@ struct UV {
 
 }
 
+/// <summary>
+/// Represent a line in Unity3D
+/// </summary>
 [System.Serializable]
 public class Line {
     [SerializeField, Header("Start Vector")]

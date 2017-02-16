@@ -1,0 +1,21 @@
+Author: Santiago Roig
+
+Feature-Based Image Metamorphis Unity-3D
+Algorithm based off of Beier-Neely paper.
+
+To Use:
+
+Open Obama_Putin scene
+Press Play
+
+Modify:
+
+If you would like to morph your own images you must mark the feature lines and add the points into A lines and B lines.  I did this using GIMP.
+Warning: Unity Texture2D (0,0) starts at top left while most image editors start at (0,0).
+
+TODO:
+
+- Cleanup stray lines.
+- Create editor script that allows line marking inside of unity.
+- Create facial recognition algorithm to detect feature lines automatically.
+- Fix animation code to animate morph over set of images.
